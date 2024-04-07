@@ -1,0 +1,64 @@
+
+name: Pull Request Workflow
+on:
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - 'data/**'
+      - 'requirments.txt'
+      - 'README.md'
+      - 'test.py'
+      - 'Dockerfile'
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  REPOSITORY_NAME: ${{ secrets.DOCKERHUB_REPO}}
+jobs:
+
+
+  Train:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 
+
+      - name: Docker Login
+        uses: docker/login-action@v3.1.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      
+      - name: Build Docker image
+        run: docker build . --tag $DOCKERHUB_USERNAME/$REPOSITORY_NAME:mlops
+
+      - name: Push Docker image
+        run: docker push $DOCKERHUB_USERNAME/$REPOSITORY_NAME:mlops
+
+
+
+  Test: 
+    needs: Train
+    name: Pull Docker Image and Run Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Docker Login
+        uses: docker/login-action@v3.1.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Pull Docker image
+        run: docker pull $DOCKERHUB_USERNAME/$REPOSITORY_NAME:mlops
+      
+      - name: Run Test
+        run: docker run --rm $DOCKERHUB_USERNAME/$REPOSITORY_NAME:mlops 
+      
+      
+  
+           
+ 
